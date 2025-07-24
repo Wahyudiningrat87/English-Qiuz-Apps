@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Bahasa Inggris Anak</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Poppins', sans-serif; }
+        .question-card {
+            transition: all 0.3s ease;
+            transform: translateY(20px);
+            opacity: 0;
+        }
+        .question-card.active {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        .option-btn {
+            transition: all 0.2s ease;
+            transform: scale(1);
+            position: relative;
+            overflow: hidden;
+        }
+        .option-btn:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 6px 15px rgba(59, 130, 246, 0.2);
+        }
+        .option-btn.selected {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8); /* Blue gradient */
+            color: white;
+            border-color: #1d4ed8;
+            transform: translateY(-2px);
+        }
+        .option-btn.correct {
+            background: linear-gradient(135deg, #10b981, #059669); /* Green gradient */
+            color: white;
+            border-color: #059669;
+        }
+        .option-btn.incorrect {
+            background: linear-gradient(135deg, #ef4444, #dc2626); /* Red gradient */
+            color: white;
+            border-color: #dc2626;
+        }
+        .progress-bar {
+            transition: width 0.5s ease;
+        }
+        .celebration {
+            animation: bounce 0.6s ease-in-out;
+        }
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .confetti-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 1000;
+        }
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: var(--color);
+            border-radius: 50%;
+            animation: fall var(--duration) linear forwards;
+            opacity: 0;
+        }
+        @keyframes fall {
+            0% { transform: translateY(-10px) rotateZ(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            100% { transform: translateY(100vh) rotateZ(720deg); opacity: 0; }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 min-h-screen flex flex-col justify-center items-center py-8">
+    <div class="container mx-auto px-4 max-w-4xl w-full">
+        <div class="text-center mb-8">
+            <h1 class="text-5xl font-extrabold text-gray-900 mb-3 drop-shadow-md">🚀 Quiz Bahasa Inggris</h1>
+            <p class="text-lg text-gray-700 font-medium">Asah kemampuan bahasa Inggris anak Anda!</p>
+        </div>
+
+        <div class="bg-white rounded-full p-1 mb-8 shadow-xl">
+            <div class="bg-gray-200 rounded-full h-4 relative overflow-hidden">
+                <div id="progressBar" class="progress-bar bg-gradient-to-r from-blue-500 to-purple-600 h-full rounded-full" style="width: 0%"></div>
+            </div>
+            <div class="text-center mt-2">
+                <span id="questionCounter" class="text-sm font-semibold text-gray-600">Soal 1 dari 25</span>
+            </div>
+        </div>
+
+        <div id="quizContainer" class="bg-white rounded-3xl shadow-2xl p-8 mb-6 relative overflow-hidden">
+            </div>
+
+        <div class="flex justify-between items-center mt-8">
+            <button id="prevBtn" class="px-8 py-4 bg-gray-300 text-gray-800 rounded-xl font-bold text-lg hover:bg-gray-400 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-md">
+                ← Sebelumnya
+            </button>
+            
+            <div class="flex space-x-4">
+                <button id="submitBtn" class="px-10 py-4 bg-green-600 text-white rounded-xl font-bold text-lg hover:bg-green-700 transition-colors duration-300 hidden shadow-lg">
+                    ✓ Selesai Quiz
+                </button>
+                <button id="nextBtn" class="px-8 py-4 bg-blue-600 text-white rounded-xl font-bold text-lg hover:bg-blue-700 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg">
+                    Selanjutnya →
+                </button>
+            </div>
+        </div>
+
+        <div id="resultsModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-3xl p-10 max-w-lg w-full mx-4 text-center fade-in relative shadow-2xl">
+                <div id="resultIcon" class="text-7xl mb-6 celebration"></div>
+                <h2 id="resultTitle" class="text-3xl font-bold text-gray-800 mb-4"></h2>
+                <div id="scoreDisplay" class="text-5xl font-extrabold text-blue-700 mb-6"></div>
+                <p id="resultMessage" class="text-lg text-gray-700 mb-8"></p>
+                <button id="restartBtn" class="px-10 py-4 bg-blue-600 text-white rounded-xl font-bold text-lg hover:bg-blue-700 transition-colors duration-300 shadow-lg">
+                    🔄 Coba Lagi
+                </button>
+                <button id="reviewBtn" class="px-10 py-4 bg-purple-600 text-white rounded-xl font-bold text-lg hover:bg-purple-700 transition-colors duration-300 shadow-lg mt-4 sm:ml-4 sm:mt-0">
+                    🔍 Review Jawaban
+                </button>
+            </div>
+        </div>
+    </div>
+    <div id="confetti-cannon" class="confetti-container"></div>
+
+    <script>
+        const allQuestions = [
+            // General English Questions (from your original list)
+            {
+                type: "mcq",
+                question: "My father is … coffee.",
+                options: ["Drink", "To drink", "Drinking", "Drank"],
+                correct: 2,
+                userAnswer: null,
+                feedback: ""
+            },
+            {
+                type: "mcq",
+                question: "Cindy is … beautifully.",
+                options: ["Dance", "Dancing", "Dances", "To dance"],
+                correct: 1,
+                userAnswer: null,
+                feedback: ""
+            },
+            {
+                type: "mcq",
+                question: "We have … three short stories so far.",
+                options: ["Writed", "Written", "Writing", "Wrote"],
+                correct: 1,
+                userAnswer: null,
+                feedback: ""
+            },
+            {
+                type: "mcq",
+                question: "Mr. and Mrs. Paul often … late.",
+                options: ["Comes", "Coming", "To come", "Come"],
+                correct: 3,
+                userAnswer: null,
+                feedback: ""
+            },
+            {
+                type: "mcq",
+                question: "My brother will … here by car.",
+                options: ["Come", "Came", "Comes", "Coming"],
+                correct: 0,
+                userAnswer: null,
+                feedback: ""
+            },
+            {
+                type: "mcq",
+                question: "Miss Caroline will … the museum next Sunday.",
+                options: ["Visiting", "To visit", "Visit", "Visits"],
+                correct: 2,
+                userAnswer: null,
+                feedback: ""
+            },
+            {
+                type: "mcq",
+                question: "We'll … harder next year.",
+                options: ["Studying", "To study", "Studies", "Study"],
+                correct: 3,
+                userAnswer: null,
+                feedback: ""
+            },
+            {
+                type: "mcq",
+                question: "Ki Hadjar Dewantara was the first … of Education in Indonesia.",
+                options: ["Mister", "Master", "Minister", "Manager"],
+                correct: 2,
+                userAnswer: null,
+                feedback: ""
+            },
+            {
+                type: "mcq",
+                question: "National Education Day is celebrated on ….",
+                options: ["May, 2", "April, 21", "August, 17", "November, 10"],
+                correct: 0,
+                userAnswer: null,
+                feedback: ""
+            },
+            {
+                type: "mcq",
+                question: "Lia: Do you know Andrea?<br>Dita: Yes. He is my nephew. His father is my __________.<br>Lia: I see.",
+                options: ["Brother", "Cousin", "Father", "Uncle"],
+                correct: 0,
+                userAnswer: null,
+                feedback: ""
+            },
+            {
+                type: "mcq",
+                question: "Sita: Where is the dirty car, Mira?<br>Mira: It's in the living room.<br>Santi: In the living room? I don't … it here.",
+                options: ["Love", "Want", "Have", "Need"],
+                correct: 2,
+                userAnswer: null,
+                feedback: ""
+            },
+            {
+                type: "mcq",
+                question: "You will know the Indonesian … after visiting the zoo.",
+                options: ["Fauna", "Flora", "Forest", "Scenery"],
+                correct: 0,
+                userAnswer: null,
+                feedback: ""
+            },
+            {
+                type: "mcq",
+                question: "I don't know the meaning of a difficult word. I … a dictionary to help me.",
+                options: ["Need", "Like", "Have", "Lend"],
+                correct: 0,
+                userAnswer: null,
+                feedback: ""
+            },
+            {
+                type: "mcq",
+                question: "Today is Wednesday, tomorrow is Thursday, yesterday is ….",
+                options: ["Wednesday, Tuesday", "Friday, Wednesday", "Monday, Sunday", "Tuesday"],
+                correct: 3,
+                userAnswer: null,
+                feedback: ""
+            },
+            {
+                type: "mcq",
+                question: "Every November 10th is celebrated ….",
+                options: ["Hero's day", "Independence Day", "Education Day", "Kartini Day"],
+                correct: 0,
+                userAnswer: null,
+                feedback: ""
+            },
+            {
+                type: "mcq",
+                question: "Mrs. Vonny is Mr. Aldo's mother.<br>Mrs. Siska is Mr. Aldo's wife.<br>Mrs. Siska is Mrs. Vonny's ….",
+                options: ["Daughter in law", "Grandmother", "Aunt", "Sister"],
+                correct: 0,
+                userAnswer: null,
+                feedback: ""
+            },
+            {
+                type: "mcq",
+                question: "Matthew was born on August 10th, 1997. It is January 2024 now. He is ... years old.",
+                options: ["Twenty-six", "Twenty-eight", "Sixteen", "Nineteen"],
+                correct: 0,
+                userAnswer: null,
+                feedback: ""
+            },
+            {
+                type: "mcq",
+                question: "How do you say \"23rd July 2013\"?",
+                options: ["Twenty and third July two hundred and thirteen", "Twenty third of July, two thousand and thirteen", "Twenty third July twenty and thirteen", "Twenty-third July, twenty thirteen"],
+                correct: 1,
+                userAnswer: null,
+                feedback: ""
+            },
+            {
+                type: "mcq",
+                question: "I have a turtle in my house. It is not big. I ___________ it in my aquarium.",
+                options: ["Keep", "Save", "Into", "Have"],
+                correct: 0,
+                userAnswer: null,
+                feedback: ""
+            },
+            {
+                type: "mcq",
+                question: "My turtle has the short tail, but the body is __________.",
+                options: ["Soft", "Hard", "Tall", "High"],
+                correct: 1,
+                userAnswer: null,
+                feedback: ""
+            },
+            {
+                type: "mcq",
+                question: "What is the food of the turtle?",
+                options: ["Fish", "Frog", "Bread", "Bird"],
+                correct: 0,
+                userAnswer: null,
+                feedback: ""
+            },
+            {
+                type: "mcq",
+                question: "She will … her holiday in Bali next month.",
+                options: ["Spent", "Spending", "Spend", "To spend"],
+                correct: 2,
+                userAnswer: null,
+                feedback: ""
+            },
+            {
+                type: "mcq",
+                question: "You and your partner are invited to attend Eleanor McKays's 15th birthday in 2008. How old will Eleanor McKays be in 2016?",
+                options: ["20", "21", "22", "23"],
+                correct: 3,
+                userAnswer: null,
+                feedback: ""
+            },
+            {
+                type: "mcq",
+                question: "When was Eleanor McKays born if she had her 15th birthday in 2008?",
+                options: ["In 2003", "In 2005", "In 1993", "In 1995"],
+                correct: 2,
+                userAnswer: null,
+                feedback: ""
+            },
+            {
+                type: "mcq",
+                question: "Angel usually sits next to Andrew, but today she is …. next to Andrew.",
+                options: ["Has sat", "Sitting", "Sit", "Would sit"],
+                correct: 1,
+                userAnswer: null,
+                feedback: ""
+            },
+            // Reading Comprehension Questions (from your request A)
+            {
+                type: "reading",
+                text: `
+                    <p class="font-bold text-xl mb-4 text-gray-800">MY PET</p>
+                    <p class="mb-3">I have a pet. It is a dog and I call it Brownie.</p>
+                    <p class="mb-3">Brownie is a Chinese breed. It is small, fluffy, and cute. It has got thick brown fur. When I cuddle it, the fur feels soft. Brownie does not like bones. Everyday it eats soft food like steamed rice, fish, or bread. Every morning I give her milk and bread. When I am at school, Brownie plays with my cat. They get along well, and never fight maybe because Brownie doesn’t bark a lot. It treats the other animals in our house gently, and it never eats shoes. Brownie is really a sweet and friendly animal.</p>
+                `,
+                question: "What is the type of the dog in the story above?",
+                options: ["German Shepherd", "Golden Retriever", "Poodle", "Chinese breed"],
+                correct: 3,
+                userAnswer: null,
+                feedback: ""
+            },
+            {
+                type: "reading",
+                text: `
+                    <p class="font-bold text-xl mb-4 text-gray-800">MY PET</p>
+                    <p class="mb-3">I have a pet. It is a dog and I call it Brownie.</p>
+                    <p class="mb-3">Brownie is a Chinese breed. It is small, fluffy, and cute. It has got thick brown fur. When I cuddle it, the fur feels soft. Brownie does not like bones. Everyday it eats soft food like steamed rice, fish, or bread. Every morning I give her milk and bread. When I am at school, Brownie plays with my cat. They get along well, and never fight maybe because Brownie doesn’t bark a lot. It treats the other animals in our house gently, and it never eats shoes. Brownie is really a sweet and friendly animal.</p>
+                `,
+                question: "What food does Brownie not like?",
+                options: ["Steamed rice", "Fish", "Bones", "Bread"],
+                correct: 2,
+                userAnswer: null,
+                feedback: ""
+            },
+            {
+                type: "reading",
+                text: `
+                    <p class="font-bold text-xl mb-4 text-gray-800">MY PET</p>
+                    <p class="mb-3">I have a pet. It is a dog and I call it Brownie.</p>
+                    <p class="mb-3">Brownie is a Chinese breed. It is small, fluffy, and cute. It has got thick brown fur. When I cuddle it, the fur feels soft. Brownie does not like bones. Everyday it eats soft food like steamed rice, fish, or bread. Every morning I give her milk and bread. When I am at school, Brownie plays with my cat. They get along well, and never fight maybe because Brownie doesn’t bark a lot. It treats the other animals in our house gently, and it never eats shoes. Brownie is really a sweet and friendly animal.</p>
+                `,
+                question: "Why do Brownie and the cat never fight?",
+                options: ["Because Brownie barks a lot", "Because Brownie doesn’t bark a lot", "Because the cat is scared", "Because they eat different food"],
+                correct: 1,
+                userAnswer: null,
+                feedback: ""
+            },
+            // Family Diagram Questions (from your request A)
+            {
+                type: "diagram",
+                diagram: `
+                    <p class="font-bold text-xl mb-4 text-gray-800">DIAGRAM KELUARGA SAMMETH</p>
+                    <pre class="bg-gray-100 p-4 rounded-lg text-sm md:text-base overflow-x-auto mb-6 whitespace-pre-wrap">
+Mr. Sammeth — Mrs. Sammeth
+       |
+Mr. Andrian Sammeth — Mrs. Andrian
+       |
+Nicholas Sammeth — Angela Sammeth — Shawn Sammeth
+                    </pre>
+                `,
+                question: "Who is Mrs. Sammeth in the family?",
+                options: ["Mr. Sammeth's daughter", "Mr. Sammeth's mother", "Mr. Sammeth's wife", "Mr. Sammeth's sister"],
+                correct: 2,
+                userAnswer: null,
+                feedback: ""
+            },
+            {
+                type: "diagram",
+                diagram: `
+                    <p class="font-bold text-xl mb-4 text-gray-800">DIAGRAM KELUARGA SAMMETH</p>
+                    <pre class="bg-gray-100 p-4 rounded-lg text-sm md:text-base overflow-x-auto mb-6 whitespace-pre-wrap">
+Mr. Sammeth — Mrs. Sammeth
+       |
+Mr. Andrian Sammeth — Mrs. Andrian
+       |
+Nicholas Sammeth — Angela Sammeth — Shawn Sammeth
+                    </pre>
+                `,
+                question: "Mr. Sammeth has a granddaughter. Who is Mr. Sammeth’s granddaughter name?",
+                options: ["Nicholas", "Shawn", "Angela", "Andrian"],
+                correct: 2,
+                userAnswer: null,
+                feedback: ""
+            }
+        ];
+
+        let questions = []; // This will hold the shuffled questions for the current quiz
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let currentQuizAttempts = []; // To store selected answer for each question in current session
+
+        const quizContainer = document.getElementById('quizContainer');
+        const progressBar = document.getElementById('progressBar');
+        const questionCounter = document.getElementById('questionCounter');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const submitBtn = document.getElementById('submitBtn');
+        const resultsModal = document.getElementById('resultsModal');
+        const resultIcon = document.getElementById('resultIcon');
+        const resultTitle = document.getElementById('resultTitle');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const resultMessage = document.getElementById('resultMessage');
+        const restartBtn = document.getElementById('restartBtn');
+        const reviewBtn = document.getElementById('reviewBtn'); // New button for review
+        const confettiCannon = document.getElementById('confetti-cannon');
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function initializeQuiz() {
+            // Shuffle all questions once at the start or on refresh
+            shuffleArray(allQuestions);
+            // Take a subset for a quiz session, or all if you want
+            // For now, let's just use all shuffled questions
+            questions = allQuestions.map(q => ({...q, userAnswer: null, feedback: ""})); // Reset user answers and feedback
+            
+            currentQuestionIndex = 0;
+            score = 0;
+            currentQuizAttempts = Array(questions.length).fill(null); // Initialize attempts
+            resultsModal.classList.add('hidden');
+            displayQuestion();
+        }
+
+        function displayQuestion() {
+            const questionData = questions[currentQuestionIndex];
+            
+            let contentHtml = '';
+
+            if (questionData.type === "reading") {
+                contentHtml += `<div class="bg-blue-50 p-6 rounded-lg mb-6 shadow-inner text-gray-700 leading-relaxed text-base">${questionData.text}</div>`;
+            } else if (questionData.type === "diagram") {
+                contentHtml += `<div class="bg-blue-50 p-6 rounded-lg mb-6 shadow-inner text-gray-700 leading-relaxed text-base">${questionData.diagram}</div>`;
+            }
+
+            contentHtml += `
+                <div class="question-card active">
+                    <div class="mb-6">
+                        <span class="inline-block bg-blue-100 text-blue-800 text-sm font-bold px-4 py-2 rounded-full mb-4 shadow-sm">
+                            Soal ${currentQuestionIndex + 1} dari ${questions.length}
+                        </span>
+                        <h2 class="text-2xl font-bold text-gray-900 leading-tight">${questionData.question}</h2>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        ${questionData.options.map((option, index) => `
+                            <button class="option-btn w-full text-left p-4 bg-gray-50 hover:bg-blue-50 rounded-xl border-2 border-gray-200 font-semibold text-gray-800 flex items-center shadow-sm" 
+                                    onclick="selectAnswer(${index})" data-index="${index}">
+                                <span class="inline-block w-10 h-10 bg-white rounded-full text-center flex items-center justify-center mr-4 text-lg font-bold text-blue-600 border border-blue-200 shadow-sm">
+                                    ${String.fromCharCode(65 + index)}
+                                </span>
+                                ${option}
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+            quizContainer.innerHTML = contentHtml;
+
+            // Apply selected/correct/incorrect states if already answered
+            if (currentQuizAttempts[currentQuestionIndex] !== null) {
+                applyAnswerStyles(currentQuizAttempts[currentQuestionIndex], questionData.correct);
+                disableOptions();
+            } else {
+                enableOptions();
+            }
+
+            updateNavigationButtons();
+            updateProgressBar();
+        }
+
+        function selectAnswer(selectedIndex) {
+            const questionData = questions[currentQuestionIndex];
+            if (currentQuizAttempts[currentQuestionIndex] !== null) { // If already answered, do nothing
+                return;
+            }
+
+            currentQuizAttempts[currentQuestionIndex] = selectedIndex; // Store the selected answer
+            
+            const correctIndex = questionData.correct;
+            
+            applyAnswerStyles(selectedIndex, correctIndex);
+            disableOptions();
+
+            // Update score only if it's the first time answering this question correctly
+            if (selectedIndex === correctIndex) {
+                score++;
+                questionData.feedback = "Benar!"; // Store feedback
+                triggerConfetti(); // Fire confetti for correct answers
+            } else {
+                questionData.feedback = "Salah. Jawaban yang benar adalah " + questionData.options[correctIndex] + "."; // Store feedback
+            }
+
+            questions[currentQuestionIndex].userAnswer = selectedIndex; // Mark as answered
+
+            updateNavigationButtons();
+        }
+
+        function applyAnswerStyles(selectedIndex, correctIndex) {
+            const options = document.querySelectorAll('.option-btn');
+            options.forEach((option, index) => {
+                if (index === correctIndex) {
+                    option.classList.add('correct');
+                } else if (index === selectedIndex) {
+                    option.classList.add('incorrect');
+                }
+            });
+        }
+
+        function disableOptions() {
+            const options = document.querySelectorAll('.option-btn');
+            options.forEach(option => {
+                option.style.pointerEvents = 'none';
+                option.classList.add('opacity-75'); // Visual cue for disabled
+            });
+        }
+
+        function enableOptions() {
+            const options = document.querySelectorAll('.option-btn');
+            options.forEach(option => {
+                option.style.pointerEvents = 'auto';
+                option.classList.remove('selected', 'correct', 'incorrect', 'opacity-75');
+            });
+        }
+
+        function updateProgressBar() {
+            const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
+            progressBar.style.width = progress + '%';
+            questionCounter.textContent = `Soal ${currentQuestionIndex + 1} dari ${questions.length}`;
+        }
+
+        function updateNavigationButtons() {
+            prevBtn.disabled = currentQuestionIndex === 0;
+            nextBtn.disabled = currentQuizAttempts[currentQuestionIndex] === null && currentQuestionIndex < questions.length -1;
+            
+            if (currentQuestionIndex === questions.length - 1 && currentQuizAttempts[currentQuestionIndex] !== null) {
+                submitBtn.classList.remove('hidden');
+                nextBtn.classList.add('hidden'); // Hide next button on last question after answering
+            } else if (currentQuestionIndex < questions.length - 1) {
+                submitBtn.classList.add('hidden');
+                nextBtn.classList.remove('hidden');
+            } else {
+                // On the last question, if not answered yet, both next and submit might be disabled
+                // If answered, submit is shown.
+                submitBtn.classList.remove('hidden');
+                nextBtn.classList.add('hidden');
+            }
+        }
+
+        function nextQuestion() {
+            if (currentQuestionIndex < questions.length - 1) {
+                currentQuestionIndex++;
+                displayQuestion();
+            }
+        }
+
+        function prevQuestion() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                displayQuestion();
+            }
+        }
+
+        function submitQuiz() {
+            const percentage = Math.round((score / questions.length) * 100);
+            let resultIconVal, resultTitleVal, resultMessageVal;
+            
+            if (percentage >= 90) {
+                resultIconVal = '🏆';
+                resultTitleVal = 'Luar Biasa!';
+                resultMessageVal = 'Anda menguasai bahasa Inggris dengan sangat baik!';
+            } else if (percentage >= 70) {
+                resultIconVal = '🎉';
+                resultTitleVal = 'Bagus Sekali!';
+                resultMessageVal = 'Kemampuan bahasa Inggris Anda sudah cukup baik!';
+            } else if (percentage >= 50) {
+                resultIconVal = '👍';
+                resultTitleVal = 'Tidak Buruk!';
+                resultMessageVal = 'Terus berlatih untuk meningkatkan kemampuan Anda!';
+            } else {
+                resultIconVal = '💪';
+                resultTitleVal = 'Semangat!';
+                resultMessageVal = 'Jangan menyerah, terus belajar dan berlatih!';
+            }
+            
+            resultIcon.textContent = resultIconVal;
+            resultTitle.textContent = resultTitleVal;
+            scoreDisplay.textContent = `${score}/${questions.length} (${percentage}%)`;
+            resultMessage.textContent = resultMessageVal;
+            resultsModal.classList.remove('hidden');
+
+            if (percentage >= 70) {
+                triggerConfetti(200); // More confetti for good scores
+            }
+        }
+
+        function restartQuiz() {
+            initializeQuiz(); // Re-initialize everything including shuffling
+        }
+
+        function reviewAnswers() {
+            resultsModal.classList.add('hidden');
+            currentQuestionIndex = 0; // Go back to the first question
+            displayQuestionForReview();
+        }
+
+        function displayQuestionForReview() {
+            const questionData = questions[currentQuestionIndex];
+            
+            let contentHtml = '';
+
+            if (questionData.type === "reading") {
+                contentHtml += `<div class="bg-blue-50 p-6 rounded-lg mb-6 shadow-inner text-gray-700 leading-relaxed text-base">${questionData.text}</div>`;
+            } else if (questionData.type === "diagram") {
+                contentHtml += `<div class="bg-blue-50 p-6 rounded-lg mb-6 shadow-inner text-gray-700 leading-relaxed text-base">${questionData.diagram}</div>`;
+            }
+
+            contentHtml += `
+                <div class="question-card active">
+                    <div class="mb-6">
+                        <span class="inline-block bg-blue-100 text-blue-800 text-sm font-bold px-4 py-2 rounded-full mb-4 shadow-sm">
+                            Soal ${currentQuestionIndex + 1} dari ${questions.length}
+                        </span>
+                        <h2 class="text-2xl font-bold text-gray-900 leading-tight">${questionData.question}</h2>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        ${questionData.options.map((option, index) => {
+                            let optionClass = "option-btn w-full text-left p-4 bg-gray-50 rounded-xl border-2 border-gray-200 font-semibold text-gray-800 flex items-center shadow-sm pointer-events-none opacity-75";
+                            if (index === questionData.correct) {
+                                optionClass += " correct";
+                            } else if (index === questionData.userAnswer) { // User's selected answer
+                                optionClass += " incorrect";
+                            }
+                            return `
+                                <button class="${optionClass}" data-index="${index}">
+                                    <span class="inline-block w-10 h-10 bg-white rounded-full text-center flex items-center justify-center mr-4 text-lg font-bold text-blue-600 border border-blue-200 shadow-sm">
+                                        ${String.fromCharCode(65 + index)}
+                                    </span>
+                                    ${option}
+                                </button>
+                            `;
+                        }).join('')}
+                    </div>
+                    <div class="mt-6 p-4 rounded-lg text-lg ${questionData.userAnswer === questionData.correct ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                        ${questionData.userAnswer === questionData.correct ? 'Jawaban Anda benar!' : `Jawaban Anda salah. Jawaban yang benar adalah: <span class="font-bold">${questionData.options[questionData.correct]}</span>`}
+                    </div>
+                </div>
+            `;
+            quizContainer.innerHTML = contentHtml;
+
+            updateProgressBar();
+            // In review mode, enable next/prev but disable submit
+            prevBtn.disabled = currentQuestionIndex === 0;
+            nextBtn.disabled = currentQuestionIndex === questions.length - 1;
+            submitBtn.classList.add('hidden'); // Hide submit during review
+            nextBtn.classList.remove('hidden'); // Ensure next is visible for navigation
+
+            // Add a special button to exit review mode
+            let exitReviewBtn = document.getElementById('exitReviewBtn');
+            if (!exitReviewBtn) {
+                exitReviewBtn = document.createElement('button');
+                exitReviewBtn.id = 'exitReviewBtn';
+                exitReviewBtn.className = 'px-8 py-4 bg-red-500 text-white rounded-xl font-bold text-lg hover:bg-red-600 transition-colors duration-300 shadow-lg';
+                exitReviewBtn.textContent = 'Keluar Review';
+                exitReviewBtn.onclick = () => {
+                    exitReviewBtn.remove(); // Remove button
+                    initializeQuiz(); // Restart quiz
+                };
+                document.querySelector('.flex.justify-between.items-center').appendChild(exitReviewBtn);
+            }
+        }
+
+
+        function triggerConfetti(num = 50) {
+            const colors = ['#fde047', '#3b82f6', '#ef4444', '#10b981', '#a855f7']; // Yellow, Blue, Red, Green, Purple
+            for (let i = 0; i < num; i++) {
+                const confetti = document.createElement('div');
+                confetti.classList.add('confetti');
+                confetti.style.setProperty('--color', colors[Math.floor(Math.random() * colors.length)]);
+                confetti.style.setProperty('--duration', `${Math.random() * 1 + 1.5}s`);
+                confetti.style.left = `${Math.random() * 100}%`;
+                confetti.style.top = `${Math.random() * 100}%`;
+                confettiCannon.appendChild(confetti);
+
+                confetti.addEventListener('animationend', () => {
+                    confetti.remove();
+                });
+            }
+        }
+
+
+        // Event listeners
+        nextBtn.addEventListener('click', nextQuestion);
+        prevBtn.addEventListener('click', prevQuestion);
+        submitBtn.addEventListener('click', submitQuiz);
+        restartBtn.addEventListener('click', restartQuiz);
+        reviewBtn.addEventListener('click', reviewAnswers); // New event listener
+
+        // Initialize quiz on load
+        initializeQuiz();
+    </script>
+</body>
+</html>
